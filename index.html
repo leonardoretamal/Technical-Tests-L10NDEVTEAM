@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Bilingual Editor</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        background: #f9f9f9;
+      }
+      header {
+        background: #4a148c;
+        color: white;
+        padding: 10px;
+        display: flex;
+        gap: 10px;
+      }
+      header button {
+        background: white;
+        color: #4a148c;
+        border: none;
+        padding: 8px 14px;
+        border-radius: 4px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+      header button:hover {
+        background: #ede7f6;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+      }
+      th,
+      td {
+        border: 1px solid #ccc;
+        padding: 8px 10px;
+        text-align: left;
+      }
+      th {
+        background: #eee;
+      }
+      textarea {
+        width: 100%;
+        min-height: 50px;
+        resize: vertical;
+      }
+      #fileInput {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <button onclick="document.getElementById('fileInput').click()">
+        Load JSON
+      </button>
+      <button onclick="downloadJSON()">Download JSON</button>
+      <input
+        type="file"
+        id="fileInput"
+        accept="application/json"
+        onchange="loadJSON(event)"
+      />
+    </header>
+
+    <main>
+      <table id="editorTable">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Source</th>
+            <th>Target</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </main>
+
+    <script>
+      let segments = [];
+
+      function loadJSON(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            segments = JSON.parse(e.target.result);
+            renderTable();
+          } catch (err) {
+            alert("Invalid JSON file!");
+          }
+        };
+        reader.readAsText(file);
+      }
+
+      function renderTable() {
+        const tbody = document.querySelector("#editorTable tbody");
+        tbody.innerHTML = "";
+        segments.forEach((seg, idx) => {
+          const tr = document.createElement("tr");
+
+          const tdId = document.createElement("td");
+          tdId.textContent = seg.id;
+          tr.appendChild(tdId);
+
+          const tdSource = document.createElement("td");
+          tdSource.textContent = seg.source;
+          tr.appendChild(tdSource);
+
+          const tdTarget = document.createElement("td");
+          const textarea = document.createElement("textarea");
+          textarea.dataset.index = idx;
+          textarea.value = seg.target || "";
+          tdTarget.appendChild(textarea);
+          tr.appendChild(tdTarget);
+
+          tbody.appendChild(tr);
+        });
+      }
+
+      function downloadJSON() {
+        if (!segments.length) {
+          alert("Load a JSON file first!");
+          return;
+        }
+
+        // Collect translated text
+        const updated = segments.map((seg, idx) => {
+          const val = document.querySelector(
+            `textarea[data-index='${idx}']`
+          ).value;
+          return {
+            id: seg.id,
+            key: seg.key,
+            source: seg.source,
+            target: val.trim() || ""
+          };
+        });
+
+        const blob = new Blob([JSON.stringify(updated, null, 4)], {
+          type: "application/json",
+        });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "updated.json";
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    </script>
+  </body>
+</html>
